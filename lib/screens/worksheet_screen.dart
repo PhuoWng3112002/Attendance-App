@@ -1,4 +1,7 @@
 import 'package:attendance_application/components/color.dart';
+import 'package:attendance_application/modal/worksheet_modal.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -10,11 +13,22 @@ class WorkSheetScreen extends StatefulWidget {
 }
 
 class _WorkSheetScreenState extends State<WorkSheetScreen> {
+  final ref = FirebaseDatabase.instance.ref('Attendance');
+  final FirebaseAuth auth = FirebaseAuth.instance;
+
   double screenHeight = 0;
   double screenWidth = 0;
 
-  String checkIn = "--/--";
-  String checkOut = "--/--";
+  List<WorkSheet> workSheetList = [];
+
+  late DatabaseReference databaseReference;
+
+  @override
+  void initState() {
+    super.initState();
+    databaseReference = FirebaseDatabase.instance.ref();
+    retrieveWorkSheetData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,109 +217,241 @@ class _WorkSheetScreenState extends State<WorkSheetScreen> {
                             )
                           ],
                         ),
+
                         //ListView đây
+                        // const SingleChildScrollView(
+                        //     padding: EdgeInsets.only(top: 20),
+                        //     child: Column(
+                        //       children: [
+                        //         for (int i = 0; i < userList.length; i++) {}
+                        //       ],
+                        //     ),
+                        //     userWidget(userList[i])
+
+                        // child: Stack(
+                        //   children: [
+                        //     Container(
+                        //       alignment: Alignment.centerLeft,
+                        //       margin: EdgeInsets.symmetric(horizontal: 20),
+                        //       child: Text(
+                        //           DateFormat('MMMM').format(DateTime.now()),
+                        //           style: TextStyle(
+                        //               fontSize: 14,
+                        //               fontWeight: FontWeight.bold)),
+                        //     ),
+                        //     Container(
+                        //       alignment: Alignment.centerRight,
+                        //       margin: EdgeInsets.symmetric(horizontal: 20),
+                        //       child: Text("Pick a month",
+                        //           style: TextStyle(
+                        //               fontSize: 14,
+                        //               fontWeight: FontWeight.bold)),
+                        //     ),
+                        //   ],
+                        // ),
+
+                        // child: Column(
+                        //   children: [
+                        //     Container(
+                        //       height: screenHeight / 9,
+                        //       decoration: const BoxDecoration(
+                        //         color: Colors.white,
+                        //         boxShadow: [
+                        //           BoxShadow(
+                        //             color: black26,
+                        //             blurRadius: 10,
+                        //             offset: Offset(2, 2),
+                        //           )
+                        //         ],
+                        //         borderRadius:
+                        //             BorderRadius.all(Radius.circular(20)),
+                        //       ),
+                        //       child: Row(
+                        //         mainAxisAlignment: MainAxisAlignment.center,
+                        //         crossAxisAlignment: CrossAxisAlignment.center,
+                        //         children: [
+
+                        //           // Expanded(
+                        //           //   child: Container(
+                        //           //     margin: const EdgeInsets.only(),
+                        //           //     child: Center(
+                        //           //       child: Text(
+                        //           //         DateFormat('EE\ndd MM yyyy')
+                        //           //             .format(DateTime.now()),
+                        //           //         style: TextStyle(
+                        //           //           fontSize: screenWidth / 23,
+                        //           //           color: black,
+                        //           //         ),
+                        //           //       ),
+                        //           //     ),
+                        //           //   ),
+                        //           // ),
+                        //           // Expanded(
+                        //           //   child: Column(
+                        //           //     mainAxisAlignment:
+                        //           //         MainAxisAlignment.center,
+                        //           //     crossAxisAlignment:
+                        //           //         CrossAxisAlignment.center,
+                        //           //     children: [
+                        //           //       TextButton(
+                        //           //         style: TextButton.styleFrom(
+                        //           //             foregroundColor: white,
+                        //           //             backgroundColor: accent,
+                        //           //             shape: RoundedRectangleBorder(
+                        //           //                 borderRadius:
+                        //           //                     BorderRadius.circular(
+                        //           //                         30.0)),
+                        //           //             textStyle: TextStyle(
+                        //           //               fontSize: screenWidth / 28,
+                        //           //             )),
+                        //           //         onPressed: () {},
+                        //           //         child: const Text('CHECK IN'),
+                        //           //       ),
+                        //           //       Text(
+                        //           //         "8:30",
+                        //           //         style: TextStyle(
+                        //           //           fontSize: screenWidth / 18,
+                        //           //           color: accent,
+                        //           //         ),
+                        //           //       ),
+                        //           //     ],
+                        //           //   ),
+                        //           // ),
+                        //           // Expanded(
+                        //           //   child: Column(
+                        //           //     mainAxisAlignment:
+                        //           //         MainAxisAlignment.center,
+                        //           //     crossAxisAlignment:
+                        //           //         CrossAxisAlignment.center,
+                        //           //     children: [
+                        //           //       TextButton(
+                        //           //         style: TextButton.styleFrom(
+                        //           //             foregroundColor: white,
+                        //           //             backgroundColor: primary,
+                        //           //             shape: RoundedRectangleBorder(
+                        //           //                 borderRadius:
+                        //           //                     BorderRadius.circular(
+                        //           //                         30.0)),
+                        //           //             textStyle: TextStyle(
+                        //           //               fontSize: screenWidth / 28,
+                        //           //             )),
+                        //           //         onPressed: () {},
+                        //           //         child: const Text('CHECK OUT'),
+                        //           //       ),
+                        //           //       Text(
+                        //           //         "16:30",
+                        //           //         style: TextStyle(
+                        //           //           fontSize: screenWidth / 18,
+                        //           //           color: primary,
+                        //           //         ),
+                        //           //       ),
+                        //           //     ],
+                        //           //   ),
+                        //           // ),
+                        //         ],
+                        //       ),
+                        //     ),
+                        //     /***************ListView******************** */
+                        //   ],
+                        // ),
+                        // ),
                         SingleChildScrollView(
-                          padding: const EdgeInsets.only(top: 20),
+                          padding: const EdgeInsets.only(top: 10),
                           child: Column(
                             children: [
-                              Container(
-                                height: screenHeight / 9,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: black26,
-                                      blurRadius: 10,
-                                      offset: Offset(2, 2),
-                                    )
-                                  ],
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(20)),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        margin: const EdgeInsets.only(),
-                                        child: Center(
-                                          child: Text(
-                                            DateFormat('EE\ndd MM yyyy')
-                                                .format(DateTime.now()),
-                                            style: TextStyle(
-                                              fontSize: screenWidth / 23,
-                                              color: black,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          TextButton(
-                                            style: TextButton.styleFrom(
-                                                foregroundColor: white,
-                                                backgroundColor: accent,
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            30.0)),
-                                                textStyle: TextStyle(
-                                                  fontSize: screenWidth / 28,
-                                                )),
-                                            onPressed: () {},
-                                            child: const Text('CHECK IN'),
-                                          ),
-                                          Text(
-                                            "8:30",
-                                            style: TextStyle(
-                                              fontSize: screenWidth / 18,
-                                              color: accent,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          TextButton(
-                                            style: TextButton.styleFrom(
-                                                foregroundColor: white,
-                                                backgroundColor: primary,
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            30.0)),
-                                                textStyle: TextStyle(
-                                                  fontSize: screenWidth / 28,
-                                                )),
-                                            onPressed: () {},
-                                            child: const Text('CHECK OUT'),
-                                          ),
-                                          Text(
-                                            "16:30",
-                                            style: TextStyle(
-                                              fontSize: screenWidth / 18,
-                                              color: primary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              // Container(
+                              //   height: screenHeight / 9,
+                              //   decoration: const BoxDecoration(
+                              //     color: Colors.white,
+                              //     boxShadow: [
+                              //       BoxShadow(
+                              //         color: black26,
+                              //         blurRadius: 10,
+                              //         offset: Offset(2, 2),
+                              //       )
+                              //     ],
+                              //     borderRadius: BorderRadius.all(Radius.circular(20)),
+                              //   ),
+                              //   child: Row(
+                              //     mainAxisAlignment: MainAxisAlignment.center,
+                              //     crossAxisAlignment: CrossAxisAlignment.center,
+                              //     children: [
+                              //       Expanded(
+                              //         child: Container(
+                              //           margin: const EdgeInsets.only(),
+                              //           child: Center(
+                              //             child: Text(
+                              //               DateFormat('EE\ndd MM yyyy')
+                              //                   .format(DateTime.now()),
+                              //               style: TextStyle(
+                              //                 fontSize: screenWidth / 23,
+                              //                 color: black,
+                              //               ),
+                              //             ),
+                              //           ),
+                              //         ),
+                              //       ),
+                              //       Expanded(
+                              //         child: Column(
+                              //           mainAxisAlignment: MainAxisAlignment.center,
+                              //           crossAxisAlignment: CrossAxisAlignment.center,
+                              //           children: [
+                              //             TextButton(
+                              //               style: TextButton.styleFrom(
+                              //                   foregroundColor: white,
+                              //                   backgroundColor: accent,
+                              //                   shape: RoundedRectangleBorder(
+                              //                       borderRadius:
+                              //                           BorderRadius.circular(30.0)),
+                              //                   textStyle: TextStyle(
+                              //                     fontSize: screenWidth / 28,
+                              //                   )),
+                              //               onPressed: () {},
+                              //               child: const Text('CHECK IN'),
+                              //             ),
+                              //             Text(
+                              //               "8:30",
+                              //               style: TextStyle(
+                              //                 fontSize: screenWidth / 18,
+                              //                 color: accent,
+                              //               ),
+                              //             ),
+                              //           ],
+                              //         ),
+                              //       ),
+                              //       Expanded(
+                              //         child: Column(
+                              //           mainAxisAlignment: MainAxisAlignment.center,
+                              //           crossAxisAlignment: CrossAxisAlignment.center,
+                              //           children: [
+                              //             TextButton(
+                              //               style: TextButton.styleFrom(
+                              //                   foregroundColor: white,
+                              //                   backgroundColor: primary,
+                              //                   shape: RoundedRectangleBorder(
+                              //                       borderRadius:
+                              //                           BorderRadius.circular(30.0)),
+                              //                   textStyle: TextStyle(
+                              //                     fontSize: screenWidth / 28,
+                              //                   )),
+                              //               onPressed: () {},
+                              //               child: const Text('CHECK OUT'),
+                              //             ),
+                              //             Text(
+                              //               "16:30",
+                              //               style: TextStyle(
+                              //                 fontSize: screenWidth / 18,
+                              //                 color: primary,
+                              //               ),
+                              //             ),
+                              //           ],
+                              //         ),
+                              //       ),
+                              //     ],
+                              //   ),
+                              // ),
+                              // for (int i = 0; i < workSheetList.length; i++)
+                              //   workSheetWidget(workSheetList[i])
                               /***************ListView******************** */
                             ],
                           ),
@@ -329,5 +475,39 @@ class _WorkSheetScreenState extends State<WorkSheetScreen> {
             ],
           ),
         ));
+  }
+
+  void retrieveWorkSheetData() {
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid;
+
+    databaseReference
+        .child("Attendance")
+        .child(uid.toString())
+        .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+        .onChildAdded
+        .listen((data) {
+      WorkSheetData workSheetData =
+          WorkSheetData.fromJson(data.snapshot.value as Map);
+      WorkSheet workSheet =
+          WorkSheet(key: data.snapshot.key, workSheetData: workSheetData);
+      workSheetList.add(workSheet);
+      setState(() {});
+    });
+  }
+
+  workSheetWidget(WorkSheet workSheetList) {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black)),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+        Column(
+          children: [Text(workSheetList.workSheetData.checkIn!)],
+        )
+      ]),
+    );
   }
 }

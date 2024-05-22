@@ -1,13 +1,23 @@
 import 'package:attendance_application/components/color.dart';
+import 'package:attendance_application/modal/user.dart';
+import 'package:attendance_application/modal/user_modal.dart';
+import 'package:attendance_application/re-use_ui/sidebar.dart';
+import 'package:attendance_application/screens/cong.dart';
 import 'package:attendance_application/screens/information_screen.dart';
 import 'package:attendance_application/screens/login_screen.dart';
 import 'package:attendance_application/screens/worksheet_screen.dart';
 import 'package:attendance_application/screens_by_admin/home_screen_by_admin.dart';
 import 'package:attendance_application/screens_by_admin/hr_management.dart';
 import 'package:attendance_application/screens_by_admin/worksheet_screen_by_admin.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+// import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,27 +27,100 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Future<FirebaseApp> _initializeFirebase() async {
+  //   FirebaseApp firebaseApp = await Firebase.initializeApp();
+  //   return firebaseApp;
+  // }
+
+  // late SharedPreferences sharedPreferences;
+
   double screenHeight = 0;
   double screenWidth = 0;
 
   String checkIn = "--/--";
   String checkOut = "--/--";
 
+  List<UserModal> userList = [];
+
+  // final myEmail = FirebaseAuth.instance.currentUser?.emailVerified;
+  FirebaseAuth auth = FirebaseAuth.instance;
+  final ref = FirebaseDatabase.instance.ref('Attendance');
+
+  // DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
+
+  // late DatabaseReference dbRef;
+  late DatabaseReference databaseReference;
+  // final User? user = auth.currentUser;
+  // final uid = user?.uid;
+  @override
+  void initState() {
+    super.initState();
+
+    // dbRef = FirebaseDatabase.instance.ref();
+    databaseReference = FirebaseDatabase.instance.ref();
+    // .child(uid!)
+    // .child(DateFormat('dd MMMM yyyy').format(DateTime.now()));
+    // String? emailUser = sharedPreferences.getString("email");
+    // final snapshot = ref.child('users/${auth.currentUser?.uid}/email').get();
+    retrieveUserData();
+    _getAttendance();
+  }
+
+  void _getAttendance() async {
+    try {
+      final User? user = auth.currentUser;
+      final uid = user?.uid;
+      final snap = await databaseReference
+          .child('Attendance')
+          .child(uid.toString())
+          .get();
+      final snapIn = await databaseReference
+          .child('Attendance')
+          .child(uid.toString())
+          .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+          .child("checkIn")
+          .get();
+      final snapOut = await databaseReference
+          .child('Attendance')
+          .child(uid.toString())
+          .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+          .child("checkOut")
+          .get();
+      setState(() {
+        if (snapIn.exists) {
+          checkIn = snapIn.value.toString();
+          // checkOut = snap2.child("checkOut").value.toString();
+        } else {
+          checkIn = "--/--";
+        }
+        if (snapOut.exists) {
+          checkOut = snapOut.value.toString();
+          // checkOut = snap2.child("checkOut").value.toString();
+        } else {
+          checkOut = "--/--";
+        }
+      });
+    } catch (e) {
+      checkIn = "--/--";
+      checkOut = "--/--";
+    }
+    // print(checkIn);
+    // print(checkOut);
+  }
+
   @override
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
         appBar: AppBar(
           title: Row(
             children: [
-              Text(
-                'Welcome,\nthphg311@gmail.com',
-                style: TextStyle(
-                    fontSize: screenWidth / 23,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900),
-              )
+              emailWidget(),
+              // StreamBuilder<Object>(
+              //     stream: null,
+              //     builder: (context, snapshot) {
             ],
           ),
           backgroundColor: primary,
@@ -54,10 +137,17 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(onPressed: () {}, icon: const Icon(Icons.add_alert))
           ],
         ),
-        drawer: const NavigationDrawer(),
-        body: Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(children: [
+        drawer: const NavigationDrawerTabBar(),
+        body:
+            // FutureBuilder(
+            //     future: _initializeFirebase(),
+            //     builder: (_, snapshot) {
+            //       if (snapshot.connectionState == ConnectionState.done) {
+            //         return
+            Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
               Row(
                 children: [
                   Expanded(
@@ -154,6 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
+                                    // checkInWidget()
                                     Text(
                                       checkIn,
                                       style: TextStyle(
@@ -186,47 +277,142 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(
                             height: screenHeight / 30,
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Column(
+                          checkOut == "--/--"
+                              ? Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    CupertinoButton(
-                                      padding: EdgeInsets.zero,
-                                      child: Container(
-                                        margin:
-                                            const EdgeInsets.only(top: 20.0),
-                                        alignment: Alignment.center,
-                                        width: screenWidth / 2.5,
-                                        height: screenHeight / 18,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(37),
-                                          gradient: const LinearGradient(
-                                            begin: Alignment.bottomRight,
-                                            end: Alignment.topLeft,
-                                            colors: [primary, secondary],
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          CupertinoButton(
+                                            padding: EdgeInsets.zero,
+                                            child: Container(
+                                              margin: const EdgeInsets.only(
+                                                  top: 20.0),
+                                              alignment: Alignment.center,
+                                              width: screenWidth / 2.5,
+                                              height: screenHeight / 18,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(37),
+                                                color: checkIn == "--/--"
+                                                    ? accent
+                                                    : primary,
+                                              ),
+                                              child: checkIn == "--/--"
+                                                  ? const Text(
+                                                      "CHECK IN",
+                                                      style: TextStyle(
+                                                        color: white,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    )
+                                                  : const Text(
+                                                      "CHECK OUT",
+                                                      style: TextStyle(
+                                                        color: white,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                            ),
+                                            onPressed: () async {
+                                              attendanceFunction().then(
+                                                Navigator.of(context)
+                                                    .pushReplacement(
+                                                        MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const HomeScreen(),
+                                                )),
+                                              );
+                                              // checkInFunction();
+                                              // final User? user = auth.currentUser;
+                                              // final uid = user?.uid;
+                                              // final snapshot = await databaseReference
+                                              //     .child('Attendance')
+                                              //     .child(uid.toString())
+                                              //     .child(DateFormat('dd MMMM yyyy')
+                                              //         .format(DateTime.now()))
+                                              //     .child('checkIn')
+                                              //     .get();
+                                              // if (snapshot.exists) {
+                                              //   checkIn = snapshot.value.toString();
+                                              // } else {
+                                              //   checkIn = "--/--";
+                                              // }
+                                              // QueryDocumentSnapshot snap =
+                                              //     await
+
+                                              // Map<String, String> records = {
+                                              //   'checkIn': DateFormat('hh:mm')
+                                              //       .format(DateTime.now()),
+                                              //   'checkOut': checkOut,
+                                              // };
+                                              // dbRef
+                                              //     .child(DateFormat('dd MMMM yyyy')
+                                              //         .format(DateTime.now()))
+                                              //     .update(records);
+                                            },
                                           ),
-                                        ),
-                                        child: const Text(
-                                          "CHECK OUT",
-                                          style: TextStyle(
-                                            color: white,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
+                                        ],
                                       ),
-                                      onPressed: () {},
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          CupertinoButton(
+                                            padding: EdgeInsets.zero,
+                                            child: Container(
+                                                margin: const EdgeInsets.only(
+                                                    top: 20.0),
+                                                alignment: Alignment.center,
+                                                width: screenWidth / 2.5,
+                                                height: screenHeight / 18,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(37),
+                                                  color: Colors.grey,
+                                                ),
+                                                child: const Text(
+                                                  "HOÀN THÀNH",
+                                                  style: TextStyle(
+                                                    color: white,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                )),
+                                            onPressed: () {
+                                              const Dialog(
+                                                  backgroundColor: Colors.grey,
+                                                  shape: RoundedRectangleBorder(
+                                                    side: BorderSide(),
+                                                    borderRadius:
+                                                        BorderRadius.all(
+                                                            Radius.circular(
+                                                                16)),
+                                                  ));
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
@@ -239,335 +425,343 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "7 ngày gần đây,",
+                  "Tin nổi bật",
                   style: TextStyle(
-                    color: Colors.black,
-                    // fontFamily:
-                    fontSize: screenWidth / 20,
-                  ),
+                      color: primary,
+                      // fontFamily:
+                      fontSize: screenWidth / 20,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
-              SingleChildScrollView(
-                padding: const EdgeInsets.only(top: 10),
-                child: Column(
-                  children: [
-                    Container(
-                      height: screenHeight / 9,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: black26,
-                            blurRadius: 10,
-                            offset: Offset(2, 2),
-                          )
-                        ],
-                        borderRadius: BorderRadius.all(Radius.circular(20)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.only(),
-                              child: Center(
-                                child: Text(
-                                  DateFormat('EE\ndd MM yyyy')
-                                      .format(DateTime.now()),
-                                  style: TextStyle(
-                                    fontSize: screenWidth / 23,
-                                    color: black,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                TextButton(
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: white,
-                                      backgroundColor: accent,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(30.0)),
-                                      textStyle: TextStyle(
-                                        fontSize: screenWidth / 28,
-                                      )),
-                                  onPressed: () {},
-                                  child: const Text('CHECK IN'),
-                                ),
-                                Text(
-                                  "8:30",
-                                  style: TextStyle(
-                                    fontSize: screenWidth / 18,
-                                    color: accent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                TextButton(
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: white,
-                                      backgroundColor: primary,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(30.0)),
-                                      textStyle: TextStyle(
-                                        fontSize: screenWidth / 28,
-                                      )),
-                                  onPressed: () {},
-                                  child: const Text('CHECK OUT'),
-                                ),
-                                Text(
-                                  "16:30",
-                                  style: TextStyle(
-                                    fontSize: screenWidth / 18,
-                                    color: primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    /***************ListView******************** */
-                  ],
-                ),
+              SizedBox(
+                height: 30,
               ),
-            ])));
-  }
-}
+              //**************Flutter Image Slide show**************************** */
 
-class NavigationDrawer extends StatelessWidget {
-  const NavigationDrawer({Key? key}) : super(key: key);
+              ImageSlideshow(
+                /// Width of the [ImageSlideshow].
+                width: double.infinity,
 
-  @override
-  Widget build(BuildContext context) => Drawer(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // buildHeader(context);
-              // buildMenuItem();
-              //Trang thông tin cá nhan
-              // và trang quản lý thông tin cá nhân giống nhau
-              //phân quyền thì hide btn đi
-              Material(
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.of(context).pushReplacement(MaterialPageRoute(
-                      builder: (context) => const InformationScreen(),
-                    ));
-                  },
-                  child: Container(
-                    color: primary,
-                    padding: EdgeInsets.only(
-                      top: 20 + MediaQuery.of(context).padding.top,
-                      bottom: 20,
-                      left: 25,
-                    ),
-                    child: const Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundImage: AssetImage("assets/images/logo.png"),
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "thphg311@gmail.com\n Nguyễn Thị Phương",
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: white,
-                          ),
-                        )
-                      ],
-                    ),
+                /// Height of the [ImageSlideshow].
+                height: 200,
+
+                /// The page to show when first creating the [ImageSlideshow].
+                initialPage: 0,
+
+                /// The color to paint the indicator.
+                indicatorColor: Colors.blue,
+
+                /// The color to paint behind th indicator.
+                indicatorBackgroundColor: Colors.grey,
+
+                /// The widgets to display in the [ImageSlideshow].
+                /// Add the sample image file into the images folder
+                children: [
+                  Image.asset(
+                    'assets/images/anh1.jpg',
+                    fit: BoxFit.cover,
                   ),
-                ),
+                  Image.asset(
+                    'assets/images/anh2.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                  Image.asset(
+                    'assets/images/anh3.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                ],
+
+                /// Called whenever the page in the center of the viewport changes.
+                onPageChanged: (value) {
+                  print('Page changed: $value');
+                },
+
+                /// Auto scroll interval.
+                /// Do not auto scroll with null or 0.
+                autoPlayInterval: 3000,
+
+                /// Loops back to first slide.
+                isLoop: true,
               ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                child: Wrap(
-                  runSpacing: 2,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.home_outlined),
-                      title: const Text("Trang chủ/Bảng công ad"),
-                      onTap: () => Navigator.of(context)
-                          .pushReplacement(MaterialPageRoute(
-                        builder: (context) => const WorkSheetAdminScreen(),
-                      )),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.add_chart),
-                      title: const Text("Bảng công✔"),
-                      onTap: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => const WorkSheetScreen(),
-                        ),
-                      ),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.calendar_month_rounded),
-                      title: const Text("Lịch/AdminHome✔"),
-                      onTap: () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                              builder: (context) => const HomeScreenAdmin())),
-                    ),
-                    ListTile(
-                      //Quản trị nhân lực== DS nhân viên
-                      leading: const Icon(Icons.add_task_rounded),
-                      title: const Text("Xin nghỉ/QLNV✔"),
-                      onTap: () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                              builder: (context) => const HRScreen())),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.change_circle_outlined),
-                      title: const Text("Đổi mật khẩu"),
-                      onTap: () {},
-                    ),
-                    const Divider(
-                      color: black54,
-                    ),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.outbond_rounded,
-                        color: accent,
-                      ),
-                      title: const Text(
-                        "Đăng xuất",
-                        style: TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                      onTap: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
+
+              //**************Flutter Image Slide show**************************** */
+              // SingleChildScrollView(
+              //   padding: const EdgeInsets.only(top: 10),
+              //   child: Column(
+              //     children: [
+              //       Container(
+              //         height: screenHeight / 9,
+              //         decoration: const BoxDecoration(
+              //           color: Colors.white,
+              //           boxShadow: [
+              //             BoxShadow(
+              //               color: black26,
+              //               blurRadius: 10,
+              //               offset: Offset(2, 2),
+              //             )
+              //           ],
+              //           borderRadius: BorderRadius.all(Radius.circular(20)),
+              //         ),
+              //         child: Row(
+              //           mainAxisAlignment: MainAxisAlignment.center,
+              //           crossAxisAlignment: CrossAxisAlignment.center,
+              //           children: [
+              //             Expanded(
+              //               child: Container(
+              //                 margin: const EdgeInsets.only(),
+              //                 child: Center(
+              //                   child: Text(
+              //                     DateFormat('EE\ndd MM yyyy')
+              //                         .format(DateTime.now()),
+              //                     style: TextStyle(
+              //                       fontSize: screenWidth / 23,
+              //                       color: black,
+              //                     ),
+              //                   ),
+              //                 ),
+              //               ),
+              //             ),
+              //             Expanded(
+              //               child: Column(
+              //                 mainAxisAlignment: MainAxisAlignment.center,
+              //                 crossAxisAlignment: CrossAxisAlignment.center,
+              //                 children: [
+              //                   TextButton(
+              //                     style: TextButton.styleFrom(
+              //                         foregroundColor: white,
+              //                         backgroundColor: accent,
+              //                         shape: RoundedRectangleBorder(
+              //                             borderRadius:
+              //                                 BorderRadius.circular(30.0)),
+              //                         textStyle: TextStyle(
+              //                           fontSize: screenWidth / 28,
+              //                         )),
+              //                     onPressed: () {},
+              //                     child: const Text('CHECK IN'),
+              //                   ),
+              //                   Text(
+              //                     "8:30",
+              //                     style: TextStyle(
+              //                       fontSize: screenWidth / 18,
+              //                       color: accent,
+              //                     ),
+              //                   ),
+              //                 ],
+              //               ),
+              //             ),
+              //             Expanded(
+              //               child: Column(
+              //                 mainAxisAlignment: MainAxisAlignment.center,
+              //                 crossAxisAlignment: CrossAxisAlignment.center,
+              //                 children: [
+              //                   TextButton(
+              //                     style: TextButton.styleFrom(
+              //                         foregroundColor: white,
+              //                         backgroundColor: primary,
+              //                         shape: RoundedRectangleBorder(
+              //                             borderRadius:
+              //                                 BorderRadius.circular(30.0)),
+              //                         textStyle: TextStyle(
+              //                           fontSize: screenWidth / 28,
+              //                         )),
+              //                     onPressed: () {},
+              //                     child: const Text('CHECK OUT'),
+              //                   ),
+              //                   Text(
+              //                     "16:30",
+              //                     style: TextStyle(
+              //                       fontSize: screenWidth / 18,
+              //                       color: primary,
+              //                     ),
+              //                   ),
+              //                 ],
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              //       ),
+              //       for (int i = 0; i < userList.length; i++)
+              //         userWidget(userList[i])
+              //       /***************ListView******************** */
+              //     ],
+              //   ),
+              // ),
             ],
           ),
-        ),
-      );
-  //cách khác
-//   Widget buildHeader(BuildContext context) => Material(
-//         child: InkWell(
-//           onTap: () {
-//             Navigator.pop(context);
-//             Navigator.of(context).pushReplacement(MaterialPageRoute(
-//               builder: (context) => const LoginScreen(),
-//             ));
-//           },
-//           child: Container(
-//             color: primary,
-//             padding: EdgeInsets.only(
-//               top: 24 + MediaQuery.of(context).padding.top,
-//               bottom: 24,
-//               left: 5,
-//             ),
-//             child: const Column(
-//               children: [
-//                 CircleAvatar(
-//                   radius: 35,
-//                   backgroundImage: AssetImage("assets/images/image_1.png"),
-//                 ),
-//                 SizedBox(
-//                   height: 10,
-//                 ),
-//                 Text(
-//                   "thphg311@gmail.com",
-//                   style: TextStyle(
-//                       fontSize: 18,
-//                       color: Colors.white,
-//                       fontWeight: FontWeight.w900),
-//                 )
-//               ],
-//             ),
-//           ),
-//         ),
-//       );
-//   Widget buildMenuItem(BuildContext context) => Container(
-//         padding: const EdgeInsets.all(24),
-//         child: Wrap(
-//           runSpacing: 10,
-//           children: [
-//             ListTile(
-//               leading: const Icon(Icons.home_outlined),
-//               title: const Text("Trang chủ"),
-//               onTap: () {},
-//               // =>
-//               //     Navigator.of(context).pushReplacement(MaterialPageRoute(
-//               //   builder: (context) => const Home(),
-//               // )),
-//             ),
-//             ListTile(
-//                 leading: const Icon(Icons.home_outlined),
-//                 title: const Text('Bảng công'),
-//                 onTap: () {
-//                   Navigator.of(context).pushReplacement(MaterialPageRoute(
-//                     builder: (context) => const LoginScreen(),
-//                   ));
-//                 }),
-//             ListTile(
-//               leading: const Icon(Icons.home_outlined),
-//               title: const Text('Home Admin'),
-//               onTap: () {
-//                 Navigator.of(context).pushReplacement(MaterialPageRoute(
-//                   builder: (context) => const LoginScreen(),
-//                 ));
-//               },
-//             ),
-//             ListTile(
-//               leading: const Icon(Icons.home_outlined),
-//               title: const Text("Xin nghỉ"),
-//               onTap: () {},
-//             ),
-//             ListTile(
-//               leading: const Icon(Icons.home_outlined),
-//               title: const Text("Đổi mật khẩu"),
-//               onTap: () {},
-//             ),
-//             const Divider(
-//               color: Colors.black54,
-//             ),
-//             ListTile(
-//               leading: const Icon(
-//                 Icons.outbond_rounded,
-//                 color: Color(0xfffe8005),
-//               ),
-//               title: const Text(
-//                 "Đăng xuất",
-//                 style: TextStyle(
-//                   fontSize: 16,
-//                 ),
-//               ),
-//               onTap: () => Navigator.of(context).pushReplacement(
-//                 MaterialPageRoute(
-//                   builder: (context) => const LoginScreen(),
-//                 ),
-//               ),
-//             )
-//           ],
-//         ),
-//       );
+        ));
+  }
+
+  void retrieveUserData() {
+    databaseReference.child("User").onChildAdded.listen((data) {
+      UserData userData = UserData.fromJson(data.snapshot.value as Map);
+      UserModal userModal =
+          UserModal(key: data.snapshot.key, userData: userData);
+      userList.add(userModal);
+      setState(() {});
+    });
+  }
+
+  userWidget(UserModal userList) {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black)),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+        Column(
+          children: [Text(userList.userData.email!)],
+        )
+      ]),
+    );
+  }
+
+  getEmail() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      for (final providerProfile in user.providerData) {
+        // final provider = providerProfile.providerId;
+        // final uid = providerProfile.uid;
+
+        // final name = providerProfile.displayName;
+        final email = providerProfile.email;
+        return email;
+      }
+    } else {
+      return;
+    }
+  }
+
+  emailWidget() {
+    return Text(
+      // ignore: prefer_interpolation_to_compose_strings
+      'Welcome,\n ' + getEmail(),
+      style: TextStyle(
+          fontSize: screenWidth / 23,
+          color: Colors.white,
+          fontWeight: FontWeight.w900),
+    );
+  }
+
+  checkInFunction() async {
+    final User? user = auth.currentUser;
+    final uid = user?.uid;
+
+    databaseReference
+        .child("Attendance")
+        .child(uid.toString())
+        .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+        .update({
+      'checkIn': DateFormat('hh:mm').format(DateTime.now()),
+      'checkOut': checkOut,
+    });
+
+    final snapshot1 = await databaseReference
+        .child('Attendance')
+        .child(uid.toString())
+        .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+        .child('checkIn')
+        .get();
+    if (snapshot1.exists) {
+      checkIn = snapshot1.value.toString();
+      print(snapshot1.value);
+      // checkOutFunction();
+    } else {
+      checkIn = "--/--";
+    }
+    // var checkInFirebse = databaseReference
+    //     .child("Attendance")
+    //     .child(uid.toString())
+    //     .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+    //     .child('checkIn')
+    //     .get();
+    // return checkInFirebse.toString();
+    // print(checkInFirebse.toString());
+  }
+
+  checkOutFunction() async {
+    final User? user = auth.currentUser;
+    final uid = user?.uid;
+    databaseReference
+        .child("Attendance")
+        .child(uid.toString())
+        .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+        .update({
+      'checkOut': DateFormat('hh:mm').format(DateTime.now()),
+    });
+
+    final snapshot2 = await databaseReference
+        .child('Attendance')
+        .child(uid.toString())
+        .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+        .child('checkOut')
+        .get();
+    if (snapshot2.exists) {
+      checkOut = snapshot2.value.toString();
+    } else {
+      print(snapshot2.value);
+      checkOut = "--/--";
+    }
+
+    // var checkInFirebse = databaseReference
+    //     .child("Attendance")
+    //     .child(uid.toString())
+    //     .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+    //     .child('checkIn')
+    //     .get();
+    // return checkInFirebse.toString();
+    // print(checkInFirebse.toString());
+  }
+
+  // checkInWidget() {
+  //   return Text(
+  //     "c",
+  //     // checkInFunction(),
+  //     style: TextStyle(
+  //       color: accent,
+  //       fontSize: screenWidth / 13,
+  //     ),
+  //   );
+  // }
+  attendanceFunction() async {
+    // Future.delayed(Duration(milliseconds: 500), () {
+    //   key.currentState!.reset();
+    // });
+    final User? user = auth.currentUser;
+    final uid = user?.uid;
+    // final snap =
+    // await databaseReference.child('Attendance').child(uid.toString()).get();
+    final snap2 = await databaseReference
+        .child('Attendance')
+        .child(uid.toString())
+        .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+        .get();
+
+    try {
+      // print(snap2.child('checkIn'));
+      String checkIn = snap2.child("checkIn").value as String;
+      await databaseReference
+          .child("Attendance")
+          .child(uid.toString())
+          .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+          .update({
+        'date': DateFormat('ddMMyyyy').format(DateTime.now()),
+        // 'date': Timestamp.now(),
+        'checkIn': checkIn,
+        'checkOut': DateFormat('hh:mm').format(DateTime.now()),
+      });
+    } catch (e) {
+      //if
+      await databaseReference
+          .child("Attendance")
+          .child(uid.toString())
+          .child(DateFormat('dd MMMM yyyy').format(DateTime.now()))
+          .set({
+        // "date": Timestamp.now(),
+        'date': DateFormat('ddMMyyyy').format(DateTime.now()),
+        'checkIn': DateFormat('hh:mm').format(DateTime.now()),
+        'checkOut': "--/--",
+      });
+    }
+  }
 }

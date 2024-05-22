@@ -1,6 +1,8 @@
 import 'package:attendance_application/components/color.dart';
 import 'package:attendance_application/screens/login_screen.dart';
+import 'package:attendance_application/screens/logout.dart';
 import 'package:attendance_application/screens_by_admin/hr_management.dart';
+import 'package:attendance_application/screens_by_admin/manager_resigns.dart';
 import 'package:attendance_application/screens_by_admin/worksheet_infor_employee.dart';
 import 'package:flutter/material.dart';
 
@@ -46,7 +48,7 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.home_outlined),
-                      title: const Text("Quản lý nhân viên✔"),
+                      title: const Text("Quản lý nhân viên"),
                       onTap: () => Navigator.of(context)
                           .pushReplacement(MaterialPageRoute(
                         builder: (context) => const HRScreen(),
@@ -55,11 +57,10 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
                     ListTile(
                       //Bảng công user và admin cũng cùng form--> phân quyền
                       leading: const Icon(Icons.add_chart),
-                      title: const Text(
-                          "Quản lý xin nghỉ/T thấy làm QLNV bằng navigation bottom bar dễ hơn đấy.\n Để dễ lấy index//QLNV.v2"),
+                      title: const Text("Quản lý xin nghỉ"),
                       onTap: () => Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
-                          builder: (context) => DetailEmployeeScreen(),
+                          builder: (context) => XinNghiDangCho(),
                         ),
                       ),
                     ),
@@ -74,11 +75,10 @@ class _HomeScreenAdminState extends State<HomeScreenAdmin> {
                           fontSize: 16,
                         ),
                       ),
-                      onTap: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
-                      ),
+                      onTap: () => showDialog(
+                          barrierDismissible: false,
+                          context: context,
+                          builder: (context) => const NoticesLogout()),
                     ),
                     const Divider(
                       color: black54,

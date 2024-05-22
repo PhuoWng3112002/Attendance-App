@@ -7,3 +7,5 @@ const Color white = Colors.white;
 const Color black = Colors.black;
 const Color black26 = Colors.black26;
 const Color black54 = Colors.black54;
+const Color blue = Colors.blue;
+const Color grey = Colors.grey;
